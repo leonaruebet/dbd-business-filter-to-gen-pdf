@@ -445,7 +445,7 @@ def image_processing_page():
 
     if st.button("Update Preview"):
         # Fixed image path
-        image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
+        image_path = "./picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
@@ -472,7 +472,7 @@ def image_processing_page():
 
     if st.button("Generate PDF"):
         # Fixed image path
-        image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
+        image_path = "./picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
