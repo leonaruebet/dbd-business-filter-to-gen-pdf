@@ -60,7 +60,7 @@ def image_processing_page():
     bg_opacity = st.slider("Background opacity", min_value=0, max_value=255, value=128)
 
     # Fixed image path
-    image_path = "./picture.jpg"
+    image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
 
     if os.path.exists(image_path):
         # Process images
@@ -105,7 +105,7 @@ def add_grid_and_ruler(image, grid_spacing=50, ruler_width=20):
         draw.text((0, y), str(y), fill=(255, 0, 0), font=font, fontsize=15)
     
     return image
-# 22:42
+
 def add_text_to_image(image, company_name, address, 
                       company_font_size=20, address_font_size=20,
                       company_x=50, company_y=50,
@@ -115,7 +115,7 @@ def add_text_to_image(image, company_name, address,
                       show_grid=False):  # Add this parameter
     draw = ImageDraw.Draw(image)
     width, height = image.size
-    font_path = "./Poppins-Medium.ttf"
+    font_path = "./SukhumvitSet Medium.ttf"
     try:
         company_font = ImageFont.truetype(font_path, company_font_size)
         address_font = ImageFont.truetype(font_path, address_font_size)
@@ -253,7 +253,6 @@ def combine_address_columns(df):
     return df
 
 #####################################################################################################################################
-
 # Main Interface
 
 def main():
@@ -362,7 +361,6 @@ def dbd_data_filter_page():
                 st.write("No companies match the selected filters.")
     else:
         st.write("Please upload CSV files to start filtering data.")
-
 #####################################################################################################################################
 def image_processing_page():
     st.title("Image Processing and PDF Generation")
@@ -406,7 +404,7 @@ def image_processing_page():
 
     if st.button("Update Preview"):
         # Fixed image path
-        image_path = "./picture.jpg"
+        image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
@@ -433,7 +431,7 @@ def image_processing_page():
 
     if st.button("Generate PDF"):
         # Fixed image path
-        image_path = "./picture.jpg"
+        image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
