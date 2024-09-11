@@ -105,7 +105,7 @@ def add_grid_and_ruler(image, grid_spacing=50, ruler_width=20):
         draw.text((0, y), str(y), fill=(255, 0, 0), font=font, fontsize=15)
     
     return image
-
+# 22:42
 def add_text_to_image(image, company_name, address, 
                       company_font_size=20, address_font_size=20,
                       company_x=50, company_y=50,
