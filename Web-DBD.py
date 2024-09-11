@@ -115,7 +115,7 @@ def add_text_to_image(image, company_name, address,
                       show_grid=False):  # Add this parameter
     draw = ImageDraw.Draw(image)
     width, height = image.size
-    font_path = ".SukhumvitSet Medium.ttf"
+    font_path = "./SukhumvitSet Medium.ttf"
     try:
         company_font = ImageFont.truetype(font_path, company_font_size)
         address_font = ImageFont.truetype(font_path, address_font_size)
