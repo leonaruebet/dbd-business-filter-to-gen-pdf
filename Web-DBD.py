@@ -115,7 +115,7 @@ def add_text_to_image(image, company_name, address,
                       show_grid=False):  # Add this parameter
     draw = ImageDraw.Draw(image)
     width, height = image.size
-    font_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/SukhumvitSet Medium.ttf"
+    font_path = ".SukhumvitSet Medium.ttf"
     try:
         company_font = ImageFont.truetype(font_path, company_font_size)
         address_font = ImageFont.truetype(font_path, address_font_size)
@@ -406,7 +406,7 @@ def image_processing_page():
 
     if st.button("Update Preview"):
         # Fixed image path
-        image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
+        image_path = ".picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
@@ -433,7 +433,7 @@ def image_processing_page():
 
     if st.button("Generate PDF"):
         # Fixed image path
-        image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
+        image_path = ".picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
