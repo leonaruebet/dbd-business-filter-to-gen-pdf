@@ -60,7 +60,7 @@ def image_processing_page():
     bg_opacity = st.slider("Background opacity", min_value=0, max_value=255, value=128)
 
     # Fixed image path
-    image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
+    image_path = ".picture.jpg"
 
     if os.path.exists(image_path):
         # Process images
