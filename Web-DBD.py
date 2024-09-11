@@ -60,7 +60,7 @@ def image_processing_page():
     bg_opacity = st.slider("Background opacity", min_value=0, max_value=255, value=128)
 
     # Fixed image path
-    image_path = ".picture.jpg"
+    image_path = "./picture.jpg"
 
     if os.path.exists(image_path):
         # Process images
@@ -406,7 +406,7 @@ def image_processing_page():
 
     if st.button("Update Preview"):
         # Fixed image path
-        image_path = ".picture.jpg"
+        image_path = "./picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
@@ -433,7 +433,7 @@ def image_processing_page():
 
     if st.button("Generate PDF"):
         # Fixed image path
-        image_path = ".picture.jpg"
+        image_path = "./picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
