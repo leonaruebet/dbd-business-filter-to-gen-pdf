@@ -267,6 +267,7 @@ def main():
     elif page == "Image Processing":
         image_processing_page()
 
+
 def dbd_data_filter_page():    
     st.title('DBD Data Filter and Export')
     
@@ -275,23 +276,43 @@ def dbd_data_filter_page():
     uploaded_files = st.file_uploader("Choose CSV files", type="csv", accept_multiple_files=True)
     
     if uploaded_files:
-        df = load_multiple_files(uploaded_files)
-        df = combine_address_columns(df)  # Combine address columns
-        st.write(f"Total records loaded: {len(df):,}")
+        try:
+            df = load_multiple_files(uploaded_files)
+            st.write(f"Data loaded successfully. Shape: {df.shape}")
+        except Exception as e:
+            st.error(f"Error loading files: {str(e)}")
+            st.exception(e)
+            return
+
+        try:
+            df = combine_address_columns(df)
+            st.write("Address columns combined successfully.")
+        except Exception as e:
+            st.error(f"Error combining address columns: {str(e)}")
+            st.exception(e)
+            return
         
-        # Display capital distribution graph
-        plot_capital_distribution(df)
+        if df.empty:
+            st.warning("The loaded data is empty. Please check your CSV files.")
+            return
+
+        try:
+            plot_capital_distribution(df)
+        except Exception as e:
+            st.error(f"Error plotting capital distribution: {str(e)}")
+            st.exception(e)
         
-        # Top subcategories pie chart
         col1, col2 = st.columns([1, 3])
         with col1:
             top_n = st.number_input("Number of top subcategories to display", min_value=1, max_value=20, value=10)
         with col2:
-            plot_top_subcategories(df, top_n)
+            try:
+                plot_top_subcategories(df, top_n)
+            except Exception as e:
+                st.error(f"Error plotting top subcategories: {str(e)}")
+                st.exception(e)
         
         st.sidebar.title('Filter Options')
-
-        # Note
 
         with st.sidebar.expander("Reminder Note", expanded=False):
             st.write("""
@@ -300,17 +321,32 @@ def dbd_data_filter_page():
             - จังหวัด : กรุงเทพมหานคร
             - ทุนจดทะเบียน : 500k - 5M
             """)
-        # Province filter
+        
+        st.write("DataFrame columns:", df.columns.tolist())
+        st.write("DataFrame info:")
+        buffer = io.StringIO()
+        df.info(buf=buffer)
+        s = buffer.getvalue()
+        st.text(s)
+        
         st.sidebar.subheader('Province Filter')
 
-        province_options = sorted(df['จังหวัด'].unique())
-        if 'default_filter' in st.session_state and st.session_state['default_filter']:
-            provinces = ['กรุงเทพมหานคร']
+        if 'จังหวัด' in df.columns:
+            st.write("'จังหวัด' column info:")
+            st.write(df['จังหวัด'].describe())
+            st.write("Unique values in 'จังหวัด':", df['จังหวัด'].nunique())
+            st.write("Sample values:", df['จังหวัด'].sample(min(5, len(df))).tolist())
+            
+            province_options = sorted(df['จังหวัด'].dropna().unique())
+            if 'default_filter' in st.session_state and st.session_state['default_filter']:
+                provinces = ['กรุงเทพมหานคร']
+            else:
+                provinces = st.sidebar.multiselect('Select Provinces', options=province_options)
+            exclude_provinces = st.sidebar.checkbox('Exclude Provinces')
         else:
-            provinces = st.sidebar.multiselect('Select Provinces', options=province_options)
-        exclude_provinces = st.sidebar.checkbox('Exclude Provinces')
-        
-        # Subcategory filter
+            st.error("Column 'จังหวัด' not found in the DataFrame")
+            return
+                    
         st.sidebar.subheader('Subcategory Filter')
         subcategory_options = sorted(df['หมวดย่อย_new'].unique())
         subcategory_mapping = dict(zip(dbd_library['หมวดย่อย'], dbd_library['ชื่อ']))
@@ -324,7 +360,6 @@ def dbd_data_filter_page():
         subcategories = [s.split(' - ')[0] for s in selected_subcategories]
         exclude_subcategories = st.sidebar.checkbox('Exclude Categories')
 
-        # Capital range filter
         st.sidebar.subheader("Capital Range")
         min_capital = df['ทุนจดทะเบียน'].min()
         max_capital = df['ทุนจดทะเบียน'].max()
@@ -332,9 +367,14 @@ def dbd_data_filter_page():
         max_capital_input = st.sidebar.number_input("Max Capital", min_value=float(min_capital), max_value=float(max_capital), value=float(max_capital), format="%0.2f")
         
         if st.sidebar.button('Apply Filters', key='apply_filters'):
-            filtered_df = filter_data(df, provinces, subcategories, min_capital_input, max_capital_input, exclude_provinces, exclude_subcategories)
-            st.session_state['filtered_df'] = filtered_df
-            st.session_state['filter_applied'] = True
+            try:
+                filtered_df = filter_data(df, provinces, subcategories, min_capital_input, max_capital_input, exclude_provinces, exclude_subcategories)
+                st.session_state['filtered_df'] = filtered_df
+                st.session_state['filter_applied'] = True
+            except Exception as e:
+                st.error(f"Error applying filters: {str(e)}")
+                st.exception(e)
+                return
         
         if 'filter_applied' in st.session_state and st.session_state['filter_applied']:
             st.subheader('Filtered Results')
@@ -343,29 +383,23 @@ def dbd_data_filter_page():
             st.write(f"Total filtered companies: {total_companies:,}")
             
             if total_companies > 0:
-                # Pagination
                 items_per_page = 20
                 num_pages = (total_companies - 1) // items_per_page + 1
                 page = st.number_input('Page', min_value=1, max_value=num_pages, value=1)
                 start_idx = (page - 1) * items_per_page
                 end_idx = start_idx + items_per_page
                 
-                # Add custom index starting from 1 for each page
                 display_df = filtered_df.iloc[start_idx:end_idx].copy()
                 display_df.insert(0, 'ลำดับ', range(start_idx + 1, min(end_idx + 1, total_companies + 1)))
                 
-                # Map subcategory codes to names
                 display_df['หมวดย่อย_name'] = display_df['หมวดย่อย_new'].map(subcategory_mapping)
                 
-                # Reorder columns to show subcategory name
                 cols = display_df.columns.tolist()
                 cols.insert(cols.index('หมวดย่อย_new') + 1, cols.pop(cols.index('หมวดย่อย_name')))
                 display_df = display_df[cols]
                 
-                # Display paginated results
                 st.dataframe(display_df.reset_index(drop=True), height=400)
                 
-                # Create a download button for the filtered data as CSV
                 columns_to_drop = ['ที่ตั้งสำนักงานใหญ่', 'ตำบล', 'อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์']
                 export_df = filtered_df.drop(columns=columns_to_drop)
                 csv = export_df.to_csv(index=False).encode('utf-8-sig')
@@ -379,7 +413,6 @@ def dbd_data_filter_page():
                 st.write("No companies match the selected filters.")
     else:
         st.write("Please upload CSV files to start filtering data.")
-
 
 #####################################################################################################################################
 def image_processing_page():
