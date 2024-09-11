@@ -267,7 +267,6 @@ def main():
     elif page == "Image Processing":
         image_processing_page()
 
-
 def dbd_data_filter_page():    
     st.title('DBD Data Filter and Export')
     
@@ -278,40 +277,16 @@ def dbd_data_filter_page():
     if uploaded_files:
         try:
             df = load_multiple_files(uploaded_files)
-            st.write(f"Data loaded successfully. Shape: {df.shape}")
+            df = combine_address_columns(df)
+            st.write(f"Data loaded successfully. Total records: {len(df):,}")
         except Exception as e:
-            st.error(f"Error loading files: {str(e)}")
-            st.exception(e)
+            st.error(f"Error processing files: {str(e)}")
             return
 
-        try:
-            df = combine_address_columns(df)
-            st.write("Address columns combined successfully.")
-        except Exception as e:
-            st.error(f"Error combining address columns: {str(e)}")
-            st.exception(e)
-            return
-        
         if df.empty:
             st.warning("The loaded data is empty. Please check your CSV files.")
             return
 
-        try:
-            plot_capital_distribution(df)
-        except Exception as e:
-            st.error(f"Error plotting capital distribution: {str(e)}")
-            st.exception(e)
-        
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            top_n = st.number_input("Number of top subcategories to display", min_value=1, max_value=20, value=10)
-        with col2:
-            try:
-                plot_top_subcategories(df, top_n)
-            except Exception as e:
-                st.error(f"Error plotting top subcategories: {str(e)}")
-                st.exception(e)
-        
         st.sidebar.title('Filter Options')
 
         with st.sidebar.expander("Reminder Note", expanded=False):
@@ -322,41 +297,16 @@ def dbd_data_filter_page():
             - ทุนจดทะเบียน : 500k - 5M
             """)
         
-        st.write("DataFrame columns:", df.columns.tolist())
-        st.write("DataFrame info:")
-        buffer = io.StringIO()
-        df.info(buf=buffer)
-        s = buffer.getvalue()
-        st.text(s)
-        
         st.sidebar.subheader('Province Filter')
-
-        if 'จังหวัด' in df.columns:
-            st.write("'จังหวัด' column info:")
-            st.write(df['จังหวัด'].describe())
-            st.write("Unique values in 'จังหวัด':", df['จังหวัด'].nunique())
-            st.write("Sample values:", df['จังหวัด'].sample(min(5, len(df))).tolist())
-            
-            province_options = sorted(df['จังหวัด'].dropna().unique())
-            if 'default_filter' in st.session_state and st.session_state['default_filter']:
-                provinces = ['กรุงเทพมหานคร']
-            else:
-                provinces = st.sidebar.multiselect('Select Provinces', options=province_options)
-            exclude_provinces = st.sidebar.checkbox('Exclude Provinces')
-        else:
-            st.error("Column 'จังหวัด' not found in the DataFrame")
-            return
+        province_options = sorted(df['จังหวัด'].dropna().unique())
+        provinces = st.sidebar.multiselect('Select Provinces', options=province_options)
+        exclude_provinces = st.sidebar.checkbox('Exclude Provinces')
                     
         st.sidebar.subheader('Subcategory Filter')
         subcategory_options = sorted(df['หมวดย่อย_new'].unique())
         subcategory_mapping = dict(zip(dbd_library['หมวดย่อย'], dbd_library['ชื่อ']))
         subcategory_options_with_names = [f"{code} - {subcategory_mapping.get(code, 'Unknown')}" for code in subcategory_options]
-        
-        if 'default_filter' in st.session_state and st.session_state['default_filter']:
-            selected_subcategories = st.session_state['selected_subcategories']
-        else:
-            selected_subcategories = st.sidebar.multiselect('Select Categories', options=subcategory_options_with_names)
-        
+        selected_subcategories = st.sidebar.multiselect('Select Categories', options=subcategory_options_with_names)
         subcategories = [s.split(' - ')[0] for s in selected_subcategories]
         exclude_subcategories = st.sidebar.checkbox('Exclude Categories')
 
@@ -373,7 +323,6 @@ def dbd_data_filter_page():
                 st.session_state['filter_applied'] = True
             except Exception as e:
                 st.error(f"Error applying filters: {str(e)}")
-                st.exception(e)
                 return
         
         if 'filter_applied' in st.session_state and st.session_state['filter_applied']:
