@@ -111,11 +111,13 @@ def add_text_to_image(image, company_name, address,
                       company_x=50, company_y=50,
                       address_x=50, address_y=100,
                       line_spacing=1.2, postal_char_spacing=0, postal_x=50, postal_y=150,
-                      text_color=(0, 0, 0), bg_color=(255, 255, 255, 0), rotation=0,
-                      show_grid=False):  # Add this parameter
+                      text_color=(9, 108, 179),  # Default color set to #096CB3
+                      bg_color=(255, 255, 255, 0), rotation=0,
+                      show_grid=False):
+    
     draw = ImageDraw.Draw(image)
     width, height = image.size
-    font_path = "./Kanit-Regular.ttf"
+    font_path = "./Kanit-Regular.ttf"  # Ensure this Thai font file is in the same directory
     try:
         company_font = ImageFont.truetype(font_path, company_font_size)
         address_font = ImageFont.truetype(font_path, address_font_size)
@@ -133,24 +135,54 @@ def add_text_to_image(image, company_name, address,
     company_draw.text((company_x, height - company_y), company_name, font=company_font, fill=text_color)
     rotated_company = company_img.rotate(rotation, expand=0)
     image.paste(rotated_company, (0, 0), rotated_company)
+
+    # Split address at the first comma
+    first_line, rest_of_address = address.split(',', 1) if ',' in address else (address, '')
     
     # Draw address
     address_img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     address_draw = ImageDraw.Draw(address_img)
     
-    lines = address.split(',')
+    # Draw first line
     y_text = height - address_y
-    for line in lines[:-1]:  # All lines except the last one (postal code)
-        address_draw.text((address_x, y_text), line.strip(), font=address_font, fill=text_color)
-        y_text += (address_font.getbbox(line)[3] - address_font.getbbox(line)[1]) + (line_spacing - 1) * address_font_size
+    address_draw.text((address_x, y_text), first_line.strip(), font=address_font, fill=text_color)
     
-    # Draw postal code
-    postal_code = lines[-1].strip()
+    # Draw the rest of the address (if any)
+    if rest_of_address:
+        y_text += (address_font.getbbox(first_line)[3] - address_font.getbbox(first_line)[1]) + (line_spacing - 1) * address_font_size
+        address_draw.text((address_x, y_text), rest_of_address.strip(), font=address_font, fill=text_color)
+
+    # Draw postal code (assuming it's the last 5 digits of the address)
+    postal_code = ''.join(filter(str.isdigit, address))[-5:]
+    if postal_code:
+        y_text += (address_font.getbbox(rest_of_address)[3] - address_font.getbbox(rest_of_address)[1]) + (line_spacing - 1) * address_font_size
+        for i, char in enumerate(postal_code):
+            char_width = address_font.getbbox(char)[2] - address_font.getbbox(char)[0]
+            address_draw.text((postal_x + i * (char_width + postal_char_spacing), height - postal_y), 
+                              char, font=address_font, fill=text_color)
+    # # Draw address
+    # address_img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    # address_draw = ImageDraw.Draw(address_img)
+    
+    # lines = address.split(',')
+    # y_text = height - address_y
+    # for line in lines[:-1]:  # All lines except the last one (postal code)
+    #     address_draw.text((address_x, y_text), line.strip(), font=address_font, fill=text_color)
+    #     y_text += (address_font.getbbox(line)[3] - address_font.getbbox(line)[1]) + (line_spacing - 1) * address_font_size
+    
+    # # Draw postal code
+    # postal_code = lines[-1].strip()
+    # postal_match = re.search(r'(\d{5})(?:\.0)?', postal_code)
+    # if postal_match:
+    #     postal_code = postal_match.group(1)
+    # else:
+    #     postal_code = ''.join(filter(str.isdigit, postal_code))
+    
     for i, char in enumerate(postal_code):
         char_width = address_font.getbbox(char)[2] - address_font.getbbox(char)[0]
         address_draw.text((postal_x + i * (char_width + postal_char_spacing), height - postal_y), 
                           char, font=address_font, fill=text_color)
-    
+      
     rotated_address = address_img.rotate(rotation, expand=0)
     image.paste(rotated_address, (0, 0), rotated_address)
     
@@ -249,9 +281,18 @@ def plot_top_subcategories(df, top_n):
     st.plotly_chart(fig)
 
 def combine_address_columns(df):
-    df['ที่อยู่จัดส่ง'] = df.apply(lambda row: f"{row['ที่ตั้งสำนักงานใหญ่']}, ตำบล{row['ตำบล']}, อำเภอ{row['อำเภอ']}, จังหวัด{row['จังหวัด']}, {row['รหัสไปรษณีย์']}", axis=1)
-    return df
+    def format_address(row):
+        # Clean up the postal code
+        postal_code = str(row['รหัสไปรษณีย์'])
+        postal_code = re.sub(r'\.0$', '', postal_code)  # Remove trailing .0 if present
 
+        if row['จังหวัด'] == 'กรุงเทพมหานคร':
+            return f"{row['ที่ตั้งสำนักงานใหญ่']}, {row['ตำบล']}, {row['อำเภอ']}, {row['จังหวัด']}, {postal_code}"
+        else:
+            return f"{row['ที่ตั้งสำนักงานใหญ่']}, ตำบล{row['ตำบล']}, อำเภอ{row['อำเภอ']}, จังหวัด{row['จังหวัด']}, {postal_code}"
+
+    df['ที่อยู่จัดส่ง'] = df.apply(format_address, axis=1)
+    return df
 #####################################################################################################################################
 # Main Interface
 
@@ -377,21 +418,21 @@ def image_processing_page():
     st.sidebar.subheader("Text Formatting")
     font_size = st.sidebar.number_input("Font size", min_value=10, max_value=50, value=20)
     line_spacing = st.sidebar.number_input("Line spacing", min_value=1.0, max_value=2.0, value=1.85, step=0.05)
-    text_color = st.sidebar.color_picker("Text color", "#000000")  # Default to black
+    text_color = st.sidebar.color_picker("Text color", "#096CB3")  # Default to black
     rotation = st.sidebar.number_input("Rotation (degrees)", min_value=0, max_value=360, value=0)
 
     st.sidebar.subheader("Company Name Position")
-    company_x = st.sidebar.number_input("Company X (from left)", min_value=0, max_value=1000, value=450)
-    company_y = st.sidebar.number_input("Company Y (from bottom)", min_value=0, max_value=1000, value=513)
+    company_x = st.sidebar.number_input("Company X (from left)", min_value=0, max_value=1000, value=230)
+    company_y = st.sidebar.number_input("Company Y (from bottom)", min_value=0, max_value=1000, value=490)
 
     st.sidebar.subheader("Address Position")
-    address_x = st.sidebar.number_input("Address X (from left)", min_value=0, max_value=1000, value=450)
-    address_y = st.sidebar.number_input("Address Y (from bottom)", min_value=0, max_value=1000, value=460)
+    address_x = st.sidebar.number_input("Address X (from left)", min_value=0, max_value=1000, value=230)
+    address_y = st.sidebar.number_input("Address Y (from bottom)", min_value=0, max_value=1000, value=435)
 
     st.sidebar.subheader("Postal Code")
-    postal_char_spacing = st.sidebar.number_input("Postal code character spacing", min_value=0, max_value=100, value=40)
-    postal_x = st.sidebar.number_input("Postal code X (from left)", min_value=0, max_value=1000, value=500)
-    postal_y = st.sidebar.number_input("Postal code Y (from bottom)", min_value=0, max_value=1000, value=300)
+    postal_char_spacing = st.sidebar.number_input("Postal code character spacing", min_value=0, max_value=100, value=38)
+    postal_x = st.sidebar.number_input("Postal code X (from left)", min_value=0, max_value=1000, value=373)
+    postal_y = st.sidebar.number_input("Postal code Y (from bottom)", min_value=0, max_value=1000, value=310)
 
     st.sidebar.subheader("Background")
     bg_color = st.sidebar.color_picker("Background color", "#FFFFFF")  # Default to white
@@ -404,7 +445,7 @@ def image_processing_page():
 
     if st.button("Update Preview"):
         # Fixed image path
-        image_path = "./picture.jpg"
+        image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
@@ -431,7 +472,7 @@ def image_processing_page():
 
     if st.button("Generate PDF"):
         # Fixed image path
-        image_path = "./picture.jpg"
+        image_path = "/Users/Workspace/CODE-WorkingSpace/Station-DBD-Filter/WebApp/picture.jpg"
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
